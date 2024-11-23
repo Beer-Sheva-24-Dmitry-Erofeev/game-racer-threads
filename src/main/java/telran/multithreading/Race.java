@@ -1,6 +1,9 @@
 package telran.multithreading;
 
-import java.util.concurrent.atomic.AtomicInteger;
+import java.time.Duration;
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Race {
 
@@ -13,14 +16,17 @@ public class Race {
     private final static int DEFAULT_NUMBER_OF_RACERS = 5;
 
     // Настройки таймаута для рандомайзера в мс
-    private final int min_sleep_timeout = 2;
-    private final int max_sleep_time = 5;
+    private final int minSleep = 2;
+    private final int maxSleep = 5;
 
     // Массив "гонщиков"
     private Racer[] racers;
 
-    // Номер победителя. Устанавливаем значение "0", чтобы с ним сравнивать
-    private static AtomicInteger winnerNumber = new AtomicInteger(0);
+    // Отметка стартового времени
+    public static LocalTime startTime;
+
+    // Таблица с победителями. Подходит незащищённая, т.к. вся работа с ней только в блоке synchronized
+    private final List<FinishRecord> finishTable = new ArrayList<>();
 
     // Конструктор
     public Race(int distance, int numberOfRacers) {
@@ -34,11 +40,23 @@ public class Race {
         this(DEFAULT_DISTANCE, DEFAULT_NUMBER_OF_RACERS);
     }
 
+    public List<FinishRecord> getFinishTable() {
+        return finishTable;
+    }
+
+    // synchronized - только один поток разом может тут работать (?)
+    public synchronized void recordFinish(Racer racer) {
+        LocalTime finishTime = LocalTime.now();
+        Duration runningTime = Duration.between(startTime, finishTime);
+        // Гонщики будут добавлены в порядке финиширования
+        finishTable.add(new FinishRecord(finishTable.size() + 1, racer.getNumber(), runningTime));
+    }
+
     // При изменении количества гонщиков нужно пересоздавать массив
     public final void createRacers() {
         Racer[] newRacers = new Racer[numberOfRacers];
         for (int i = 0; i < numberOfRacers; i++) {
-            newRacers[i] = new Racer(this, i);
+            newRacers[i] = new Racer(this, i + 1);
         }
         this.racers = newRacers; // обновляем поле racers
     }
@@ -63,24 +81,31 @@ public class Race {
         this.numberOfRacers = numberOfRacers;
     }
 
-    public int getMin_sleep_timeout() {
-        return min_sleep_timeout;
+    public int getMinSleep() {
+        return minSleep;
     }
 
-    public int getMax_sleep_time() {
-        return max_sleep_time;
+    public int getMaxSleep() {
+        return maxSleep;
     }
 
-    public void clearWinner() {
-        winnerNumber.set(0);
-    }
+    public static class FinishRecord {
 
-    public int getWinnerNumber() {
-        return winnerNumber.get();
-    }
+        private final int place;
+        private final int racerNumber;
+        private final Duration runningTime;
 
-    public static AtomicInteger getWinnerNumberAtomic() {
-        return winnerNumber;
+        public FinishRecord(int place, int racerNumber, Duration runningTime) {
+            this.place = place;
+            this.racerNumber = racerNumber;
+            this.runningTime = runningTime;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("Place: %d | Racer: %d | Time: %d ms",
+                    place, racerNumber, runningTime.toMillis());
+        }
     }
 
 }

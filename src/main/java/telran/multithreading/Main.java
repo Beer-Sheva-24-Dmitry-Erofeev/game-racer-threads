@@ -1,5 +1,6 @@
 package telran.multithreading;
 
+import java.time.LocalTime;
 import java.util.Arrays;
 
 import telran.view.Item;
@@ -10,6 +11,7 @@ public class Main {
 
     // Создаём гонку с дефолтными настройками
     private static final Race race = new Race();
+
     // Cоздаём дефолтное количетсво гонщиков
     private static final Racer[] racersDefault = new Racer[race.getNumberOfRacers()];
 
@@ -22,16 +24,12 @@ public class Main {
         // Гонка запускается из меню
     }
 
-    // Запускаем гонку
     public static void performRace(Racer[] racers) {
-        // Стартуем гонку
+        Race.startTime = LocalTime.now();
         startRace(racers);
-        // Завершаем гонку
         completeRace(racers);
-        // Выводим строку с победителем
-        printRaceWinnerNumber();
-        // Очищаем переменную с победителем
-        race.clearWinner();
+        printResults();
+        race.getFinishTable().clear();
     }
 
     // Запускаем гонку с параметрами по умолчанию
@@ -54,17 +52,14 @@ public class Main {
             try {
                 t.join();
             } catch (InterruptedException e) {
-                // Я спросил у Chat-GPT про это место, и он объяснил мне, что лучше делать так, 
-                // а не оставлять блок catch пустым. Хотя в нашем случае это, видимо, не нужно.
-                // Было бы здорово понять, как делать правильно и когда.
-                Thread.currentThread().interrupt();
             }
         });
     }
 
-    // Выводим в консоль номер победителя
-    private static void printRaceWinnerNumber() {
-        System.out.printf("\nWe had %d racers and the race was %d kilometers long!\n", race.getNumberOfRacers(), race.getDistance());
-        System.out.printf("And our winner is... racer number %d!\n\n", race.getWinnerNumber());
+    // Выводим таблицу результатов
+    private static void printResults() {
+        System.out.println("\nFinish Table:");
+        race.getFinishTable().forEach(System.out::println);
+        System.out.println();
     }
 }
